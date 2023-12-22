@@ -1,96 +1,68 @@
 import { Component } from 'react'
-// import Form from './Form'
-import FormCreateTodo from './FormCreateTodo'
-import { nanoid } from 'nanoid'
-import TodoList from './TodoList'
+import { getProductsApi, getSearchProductsApi } from './api/users'
 
 class App extends Component {
 	state = {
-		count: 100,
-		count2: 10,
-		formValue: { email: '', firstName: '', password: '' },
-		todos: [],
+		products: [],
+		isLoading: false,
+		error: '',
+		query: '',
 	}
 
-	handleIncrement = () =>
-		this.setState((prevState) => ({
-			count: prevState.count + 1,
-		}))
-
-	handleDecrement = () => {
-		this.setState((prevState) => {
-			return {
-				count: prevState.count - 1,
-			}
-		})
-	}
-
-	handleIncrement2 = () => {
-		this.setState((prevState) => {
-			return {
-				count2: prevState.count2 + 1,
-			}
-		})
-	}
-
-	handleDecrement2 = () => {
-		this.setState((prevState) => {
-			return {
-				count2: prevState.count2 - 1,
-			}
-		})
-	}
-
-	createFormObj = (formObj) => {
-		this.setState({ formValue: formObj })
-	}
-
-	createTodo = (todoObj) => {
-		const todo = {
-			...todoObj,
-			id: nanoid(),
-			status: false,
+	getProducts = async () => {
+		try {
+			this.setState({ isLoading: true })
+			const data = await getProductsApi()
+			this.setState({ products: data.products, isLoading: false })
+		} catch (error) {
+			this.setState({ error: error.message, isLoading: false })
 		}
-		this.setState((prev) => ({ todos: [...prev.todos, todo] }))
 	}
 
-	handleDel = (id) => {
-		this.setState((prev) => ({
-			todos: prev.todos.filter((todo) => todo.id !== id),
-		}))
+	getSearchProducts = async () => {
+		try {
+			this.setState({ isLoading: true })
+			const data = await getSearchProductsApi(this.state.query)
+			this.setState({ products: data.products, isLoading: false })
+		} catch (error) {
+			this.setState({ error: error.message, isLoading: false })
+		}
 	}
+
+	componentDidMount() {
+		this.getProducts()
+	}
+
+	componentDidUpdate(prevProps, prevState) {
+		if (prevState.query !== this.state.query) {
+			this.getSearchProducts()
+		}
+	}
+
+	handleSubmit = (e) => {
+		e.preventDefault()
+		this.setState({ query: e.target.elements.search.value })
+	}
+
 	render() {
+		console.log('this.state :>> ', this.state)
 		return (
 			<>
-				{/* <Form createFormObj={this.createFormObj} /> */}
-				{/* <div>
-					<p>email: {this.state.formValue.email}</p>
-					<p>password: {this.state.formValue.password}</p>
-					<p>firstName: {this.state.formValue.firstName}</p>
-				</div> */}
-				<div style={{ display: 'flex', justifyContent: 'center' }}>
-					<button style={{ margin: 10 }} onClick={this.handleIncrement}>
-						+
-					</button>
-					<button style={{ margin: 10 }} onClick={this.handleDecrement}>
-						-
-					</button>
-					<br />
-					{this.state.count}
-				</div>
-				<br />
-				<div style={{ display: 'flex', justifyContent: 'center' }}>
-					<button style={{ margin: 10 }} onClick={this.handleIncrement2}>
-						+
-					</button>
-					<button style={{ margin: 10 }} onClick={this.handleDecrement2}>
-						-
-					</button>
-					<br />
-					{this.state.count2}
-				</div>
-				<FormCreateTodo createTodo={this.createTodo} />
-				<TodoList todos={this.state.todos} handleDel={this.handleDel} />
+				{this.state.isLoading && <h1>loading...</h1>}
+
+				{this.state.error && <h3>{this.state.error}</h3>}
+
+				<form onSubmit={this.handleSubmit}>
+					<input type='search' name='search' />
+					<button type='submit'>Search</button>
+				</form>
+
+				{this.state.products.map((el) => (
+					<div key={el.id}>
+						<h3>{el.title}</h3>
+						<p>{el.description}</p>
+					</div>
+				))}
 			</>
 		)
 	}
